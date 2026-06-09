@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import 'api_service.dart';
 import 'cart_manager.dart';
 import 'screens/auth_screens.dart';
@@ -19,17 +20,21 @@ void main() async {
   final apiService = ApiService();
   await apiService.init();
   
-  // Initialize notifications
-  await NotificationService().init();
+  final isMobile = Platform.isAndroid || Platform.isIOS;
 
-  // Initialize background service
-  await initializeBackgroundService();
+  if (isMobile) {
+    // Initialize notifications
+    await NotificationService().init();
+
+    // Initialize background service
+    await initializeBackgroundService();
+  }
   
   // Initialize Cart Manager (loads local saved cart)
   CartManager();
 
   // Request notifications permission if already authenticated
-  if (apiService.isAuthenticated) {
+  if (apiService.isAuthenticated && isMobile) {
     NotificationService().requestPermissions();
   }
 
@@ -259,7 +264,9 @@ class _MainTabControllerState extends State<MainTabController> {
       ProfileScreen(
         onLogout: () async {
           // Stop background service on logout
-          FlutterBackgroundService().invoke("stopService");
+          if (Platform.isAndroid || Platform.isIOS) {
+            FlutterBackgroundService().invoke("stopService");
+          }
           await ApiService().logout();
           CartManager().clear();
           if (mounted) {
