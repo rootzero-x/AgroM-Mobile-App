@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import '../api_service.dart';
 import '../notification_service.dart';
 import '../order_tracker.dart';
@@ -36,8 +37,10 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       
       // Request notification access and start background tracking service
-      await NotificationService().requestPermissions();
-      await initializeBackgroundService();
+      if (Platform.isAndroid || Platform.isIOS) {
+        await NotificationService().requestPermissions();
+        await initializeBackgroundService();
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -378,8 +381,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
       // Request notification access and start background tracking service
-      await NotificationService().requestPermissions();
-      await initializeBackgroundService();
+      if (Platform.isAndroid || Platform.isIOS) {
+        await NotificationService().requestPermissions();
+        await initializeBackgroundService();
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
