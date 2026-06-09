@@ -339,9 +339,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       : GridView.builder(
                           padding: const EdgeInsets.all(16),
                           physics: const AlwaysScrollableScrollPhysics(),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio: 0.70,
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: MediaQuery.of(context).size.width > 1400
+                                ? 6
+                                : MediaQuery.of(context).size.width > 1100
+                                    ? 5
+                                    : MediaQuery.of(context).size.width > 800
+                                        ? 4
+                                        : MediaQuery.of(context).size.width > 600
+                                            ? 3
+                                            : 2,
+                            childAspectRatio: 0.72,
                             crossAxisSpacing: 16,
                             mainAxisSpacing: 16,
                           ),
