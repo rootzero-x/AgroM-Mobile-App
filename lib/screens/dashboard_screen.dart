@@ -54,11 +54,13 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   String _selectedCategory = 'Barchasi';
   int _currentPage = 1;
   int _totalPages = 1;
   List<Product> _products = [];
   bool _isLoading = false;
+  bool _isLoadMoreLoading = false;
 
   final List<String> _categories = [
     'Barchasi',
@@ -72,13 +74,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_scrollListener);
     _fetchProducts();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollListener() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!_isLoading && !_isLoadMoreLoading && _currentPage < _totalPages) {
+        _loadMoreProducts();
+      }
+    }
   }
 
   Future<void> _fetchProducts() async {
@@ -92,7 +104,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         onCacheLoaded: (cachedResult) {
           if (mounted) {
             setState(() {
-              _products = cachedResult['products'];
+              _products = List<Product>.from(cachedResult['products']);
               _currentPage = cachedResult['page'];
               _totalPages = cachedResult['pages'];
               _isLoading = false; // Hide loader early
@@ -102,7 +114,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
       if (mounted) {
         setState(() {
-          _products = result['products'];
+          _products = List<Product>.from(result['products']);
           _currentPage = result['page'];
           _totalPages = result['pages'];
         });
@@ -123,16 +135,54 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  Future<void> _loadMoreProducts() async {
+    if (_isLoadMoreLoading || _currentPage >= _totalPages) return;
+    setState(() => _isLoadMoreLoading = true);
+
+    try {
+      final nextPage = _currentPage + 1;
+      final result = await ApiService().getProducts(
+        keyword: _searchController.text,
+        category: _selectedCategory,
+        pageNumber: nextPage,
+      );
+
+      if (mounted) {
+        setState(() {
+          final List<Product> newProducts = List<Product>.from(result['products']);
+          final existingIds = _products.map((p) => p.id).toSet();
+          final uniqueNewProducts = newProducts.where((p) => !existingIds.contains(p.id)).toList();
+
+          _products.addAll(uniqueNewProducts);
+          _currentPage = result['page'];
+          _totalPages = result['pages'];
+        });
+      }
+    } catch (e) {
+      print('DashboardScreen: Error loading more products: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadMoreLoading = false);
+      }
+    }
+  }
+
   void _onCategorySelected(String category) {
     setState(() {
       _selectedCategory = category;
       _currentPage = 1;
     });
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0);
+    }
     _fetchProducts();
   }
 
   void _onSearch() {
     setState(() => _currentPage = 1);
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0);
+    }
     _fetchProducts();
   }
 
@@ -336,68 +386,59 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                           ],
                         )
-                      : GridView.builder(
-                          padding: const EdgeInsets.all(16),
+                      : CustomScrollView(
+                          controller: _scrollController,
                           physics: const AlwaysScrollableScrollPhysics(),
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: MediaQuery.of(context).size.width > 1400
-                                ? 6
-                                : MediaQuery.of(context).size.width > 1100
-                                    ? 5
-                                    : MediaQuery.of(context).size.width > 800
-                                        ? 4
-                                        : MediaQuery.of(context).size.width > 600
-                                            ? 3
-                                            : 2,
-                            childAspectRatio: 0.72,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                          ),
-                          itemCount: _products.length,
-                          itemBuilder: (context, index) {
-                            final product = _products[index];
-                            return ProductCard(
-                              product: product,
-                              onReload: _fetchProducts,
-                            );
-                          },
+                          slivers: [
+                            SliverPadding(
+                              padding: const EdgeInsets.all(16),
+                              sliver: SliverGrid(
+                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: MediaQuery.of(context).size.width > 1400
+                                      ? 6
+                                      : MediaQuery.of(context).size.width > 1100
+                                          ? 5
+                                          : MediaQuery.of(context).size.width > 800
+                                              ? 4
+                                              : MediaQuery.of(context).size.width > 600
+                                                  ? 3
+                                                  : 2,
+                                  childAspectRatio: 0.72,
+                                  crossAxisSpacing: 16,
+                                  mainAxisSpacing: 16,
+                                ),
+                                delegate: SliverChildBuilderDelegate(
+                                  (context, index) {
+                                    final product = _products[index];
+                                    return ProductCard(
+                                      product: product,
+                                      onReload: _fetchProducts,
+                                    );
+                                  },
+                                  childCount: _products.length,
+                                ),
+                              ),
+                            ),
+                            if (_isLoadMoreLoading)
+                              const SliverToBoxAdapter(
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 24),
+                                  child: Center(
+                                    child: SizedBox(
+                                      width: 28,
+                                      height: 28,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.5,
+                                        color: Color(0xFF2E7D32),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
             ),
           ),
-
-          // Pagination Controls
-          if (_totalPages > 1 && !_isLoading)
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              color: Colors.white,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.chevron_left),
-                    onPressed: _currentPage > 1
-                        ? () {
-                            setState(() => _currentPage--);
-                            _fetchProducts();
-                          }
-                        : null,
-                  ),
-                  Text(
-                    '$_currentPage / $_totalPages',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.chevron_right),
-                    onPressed: _currentPage < _totalPages
-                        ? () {
-                            setState(() => _currentPage++);
-                            _fetchProducts();
-                          }
-                        : null,
-                  ),
-                ],
-              ),
-            ),
         ],
       ),
     );
