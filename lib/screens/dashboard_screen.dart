@@ -93,6 +93,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  void _checkAndLoadMoreIfNeeded() {
+    if (!mounted) return;
+    if (_scrollController.hasClients) {
+      final maxScroll = _scrollController.position.maxScrollExtent;
+      if (maxScroll == 0 && _currentPage < _totalPages && !_isLoading && !_isLoadMoreLoading) {
+        print('DashboardScreen: Screen has extra space, auto-triggering load more...');
+        _loadMoreProducts();
+      }
+    }
+  }
+
   Future<void> _fetchProducts() async {
     // Only show loading spinner if we have no products displayed yet (instant cache rendering)
     setState(() => _isLoading = _products.isEmpty);
@@ -109,6 +120,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               _totalPages = cachedResult['pages'];
               _isLoading = false; // Hide loader early
             });
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _checkAndLoadMoreIfNeeded();
+            });
           }
         },
       );
@@ -117,6 +131,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _products = List<Product>.from(result['products']);
           _currentPage = result['page'];
           _totalPages = result['pages'];
+        });
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _checkAndLoadMoreIfNeeded();
         });
       }
     } catch (e) {
@@ -156,6 +173,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _products.addAll(uniqueNewProducts);
           _currentPage = result['page'];
           _totalPages = result['pages'];
+        });
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _checkAndLoadMoreIfNeeded();
         });
       }
     } catch (e) {
