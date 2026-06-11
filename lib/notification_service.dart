@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'main.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -29,20 +30,40 @@ class NotificationService {
         initializationSettings,
         onDidReceiveNotificationResponse: (details) {
           print('NotificationService: Notification tapped. Payload: ${details.payload}');
+          try {
+            AgromApp.navigatorKey.currentState?.pushNamed('/orders');
+          } catch (e) {
+            print('NotificationService: Error navigating on tap: $e');
+          }
         },
       );
 
-      // Create Android Notification Channel explicitly
-      const androidChannel = AndroidNotificationChannel(
-        'agrom_order_channel',
-        'AgroM Buyurtmalar',
-        description: 'Buyurtmalar holati o\'zgarishi haqida xabarnomalar',
-        importance: Importance.max,
-        playSound: true,
-      );
-      await _notificationsPlugin
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-          ?.createNotificationChannel(androidChannel);
+      final androidPlugin = _notificationsPlugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+
+      if (androidPlugin != null) {
+        // Create separate channels for silent background service and high-priority alerts
+        const backgroundChannel = AndroidNotificationChannel(
+          'agrom_background_channel',
+          'AgroM Orqa Fon Xizmati',
+          description: 'Orqa fonda xizmatning ishlash holati',
+          importance: Importance.low,
+          playSound: false,
+          enableVibration: false,
+        );
+
+        const orderChannel = AndroidNotificationChannel(
+          'agrom_order_channel',
+          'AgroM Buyurtmalar',
+          description: 'Buyurtmalar holati o\'zgarishi haqida xabarnomalar',
+          importance: Importance.max,
+          playSound: true,
+          enableVibration: true,
+        );
+
+        await androidPlugin.createNotificationChannel(backgroundChannel);
+        await androidPlugin.createNotificationChannel(orderChannel);
+      }
 
       print('NotificationService: Local notifications initialized successfully.');
     } catch (e) {

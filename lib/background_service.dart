@@ -16,9 +16,9 @@ Future<void> initializeBackgroundService() async {
       onStart: onStart,
       autoStart: true,
       isForegroundMode: true,
-      notificationChannelId: 'agrom_order_channel',
-      initialNotificationTitle: 'AgroM',
-      initialNotificationContent: 'Buyurtmalar holati orqa fonda kuzatilmoqda',
+      notificationChannelId: 'agrom_background_channel',
+      initialNotificationTitle: 'AgroM Orqa Fon Xizmati',
+      initialNotificationContent: 'Xizmat orqa fonda faol va buyurtmalarni kuzatmoqda',
       foregroundServiceTypes: [AndroidForegroundType.dataSync],
     ),
     iosConfiguration: IosConfiguration(

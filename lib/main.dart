@@ -44,12 +44,15 @@ void main() async {
 class AgromApp extends StatelessWidget {
   const AgromApp({super.key});
 
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
   @override
   Widget build(BuildContext context) {
     final isAuthenticated = ApiService().isAuthenticated;
 
     return MaterialApp(
       title: 'AgroM',
+      navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       
       // Premium Professional Agrom Design Theme
@@ -167,6 +170,20 @@ class MainTabController extends StatefulWidget {
 
 class _MainTabControllerState extends State<MainTabController> {
   int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Start foreground real-time order status tracking
+    OrderTracker().startTracking();
+  }
+
+  @override
+  void dispose() {
+    // Stop foreground tracking when leaving dashboard
+    OrderTracker().stopTracking();
+    super.dispose();
+  }
 
   void _onTabChanged(int index) {
     setState(() {

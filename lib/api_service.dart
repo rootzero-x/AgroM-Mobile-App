@@ -20,6 +20,7 @@ class ApiService {
   // Initialize service, load token and current user if they exist
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
     _token = prefs.getString('agrom_token');
     final userJson = prefs.getString('agrom_user');
     if (userJson != null) {

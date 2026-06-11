@@ -79,10 +79,10 @@ class OrderTracker {
 
       final Map<String, Map<String, bool>> nextStates = {};
       bool stateChanged = false;
-      int notificationId = 200;
 
       for (final order in orders) {
         final orderId = order.id;
+        final notificationId = orderId.hashCode;
         final currentIsPaid = order.isPaid;
         final currentIsDelivered = order.isDelivered;
 
@@ -114,7 +114,7 @@ class OrderTracker {
           if (!wasPaid && currentIsPaid) {
             print('OrderTracker: Transition - Order $orderId was paid!');
             await NotificationService().showOrderUpdateNotification(
-              id: notificationId++,
+              id: notificationId,
               title: 'Buyurtma to\'landi! ✅',
               body: 'Sizning "$orderName" buyurtmangiz uchun to\'lov muvaffaqiyatli qabul qilindi.',
             );
@@ -125,7 +125,7 @@ class OrderTracker {
           if (!wasDelivered && currentIsDelivered) {
             print('OrderTracker: Transition - Order $orderId was delivered!');
             await NotificationService().showOrderUpdateNotification(
-              id: notificationId++,
+              id: notificationId,
               title: 'Buyurtma yetkazildi! 🚚',
               body: 'Sizning "$orderName" buyurtmangiz muvaffaqiyatli yetkazib berildi.',
             );
@@ -142,16 +142,16 @@ class OrderTracker {
           if (currentIsPaid && isPaidRecent) {
             print('OrderTracker: New order $orderId paid recently (${paidAtUtc}). Sending notification.');
             await NotificationService().showOrderUpdateNotification(
-              id: notificationId++,
+              id: notificationId,
               title: 'Buyurtma to\'landi! ✅',
-              body: 'Sizning "$orderName" buyurtmangiz uchun to\'lov muvaffaqiyatli qabul qilindi.',
+              body: 'Sizning "$orderName" buyurtmangiz uchun to\'lov muvaffabul qabul qilindi.',
             );
           }
 
           if (currentIsDelivered && isDeliveredRecent) {
             print('OrderTracker: New order $orderId delivered recently (${deliveredAtUtc}). Sending notification.');
             await NotificationService().showOrderUpdateNotification(
-              id: notificationId++,
+              id: notificationId,
               title: 'Buyurtma yetkazildi! 🚚',
               body: 'Sizning "$orderName" buyurtmangiz muvaffaqiyatli yetkazib berildi.',
             );
